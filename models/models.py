@@ -6,6 +6,7 @@ class ProjectProject(models.Model):
     _inherit = 'project.project'
 
     reminder_frequency = fields.Selection([
+        ('minutes', 'Minutes'),
         ('daily', 'Daily'),
         ('weekly', 'Weekly'),
         ('bi_weekly', 'Bi-Weekly'),
@@ -17,11 +18,14 @@ class ProjectProject(models.Model):
 
 
 
+
+
     @api.model
     def send_reminders(self):
         projects = self.search([('reminder_frequency', '!=', False)])
         for project in projects:
             next_reminder_date = {
+                'minutes': timedelta(minutes=4),
                 'daily': timedelta(days=1),
                 'weekly': timedelta(weeks=1),
                 'bi_weekly': timedelta(weeks=2),
@@ -30,6 +34,11 @@ class ProjectProject(models.Model):
             }[project.reminder_frequency]
 
             last_reminder = project.last_reminder_date or project.create_date
+
+            if last_reminder and project.last_update_id.create_date:
+                last_reminder = max(last_reminder,project.last_update_id.create_date)
+            else:
+                last_reminder = last_reminder or project.last_update_id.create_date
 
             # Check if reminder needs to be sent
             if last_reminder + next_reminder_date <= datetime.now():
